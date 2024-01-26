@@ -43,14 +43,14 @@ template <is_numeric T> pfc::byte_t to_byte (T const value) {
 
 // -------------------------------------------------------------------------------------------------
 
-using real_t    = float; // also check double
+using real_t    = float; 
 using complex_t = pfc::complex<real_t>;
 
 constinit std::size_t g_colors   {debug_release (64, 128)};
 constinit real_t      g_epsilon  {0.00001f};
 constinit real_t      g_infinity {4};
 constinit std::size_t g_width    {debug_release (1024, 8192)};
-constinit auto job_to_test       {16};
+constinit std::size_t job_to_test{200};
 
 std::ostream nout {nullptr};
 auto &       dout {debug_release (std::cout, nout)};
@@ -71,9 +71,9 @@ pfc::bmp::pixel_t iterate (complex_t const c) {
    while ((i++ < g_colors) && (z.norm() < g_infinity))
       z = pfc::square(z) + c;
 
-   ++i;   // gives a nice effect
+   ++i; 
 
-   return {.green = to_byte (1.0 * i / g_colors * 255)}; // Optimize this lookup
+   return {.green = to_byte (1.0 * i / g_colors * 255)};
 }
 
 static inline void fractal (pfc::bitmap& bmp, std::size_t const start_height, std::size_t const stop_height, complex_t const ll, complex_t const ur) {
@@ -93,7 +93,7 @@ static inline void fractal (pfc::bitmap& bmp, std::size_t const start_height, st
        c.real = ll.real;
 
       for (std::size_t x {0}; x < width; c.real += dx, ++x)
-          *(pixel_data + y_width + x) = iterate (c);
+          *(pixel_data + y_width + x) = iterate(c);
    
       y_width += width;
    }
@@ -105,11 +105,12 @@ std::string make_filename_bmp (std::size_t const t, std::size_t const n) {
 
 // -------------------------------------------------------------------------------------------------
 
-static inline void measure_threads(int job_nr) {
+static inline void measure_threads() {
     std::ofstream output("threads_results.csv");
+    // TODO durchsatz, eine zoomfahrt
     output << "batch_size;thread_count;execution_time\n";
 
-    auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(job_nr) };
+    auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(job_to_test) };
     size_t job_size = jobs.size();
     auto images = std::vector<pfc::bitmap>(job_size);
     std::size_t height = static_cast<std::size_t>(g_width / jobs.aspect_ratio());
@@ -119,7 +120,7 @@ static inline void measure_threads(int job_nr) {
         bmp = make_bitmap(g_width, jobs.aspect_ratio());
     }
 
-    for (unsigned int current_batch_size = 1; current_batch_size <= job_size; current_batch_size = std::min(current_batch_size * 2, static_cast<unsigned int>(job_size + 1))) {
+    for (unsigned int current_batch_size = 1; current_batch_size <= job_size; current_batch_size = std::min(current_batch_size * 2, job_size + 1)) {
         for (unsigned int current_thread_count = 1; current_thread_count <= max_threads; current_thread_count = std::ceil(current_thread_count * 1.1)) {
             if (current_thread_count < current_batch_size) {
 				continue;
@@ -154,7 +155,7 @@ static inline void measure_threads(int job_nr) {
                                     t.join();
                                 }
                             }
-                            });
+                        });
                     }
 
                     for (auto& t : batch_threads) {
@@ -172,11 +173,11 @@ static inline void measure_threads(int job_nr) {
     output.close();
 }
 
-static inline void measure_tasks(int job_nr) {
+static inline void measure_tasks() {
     std::ofstream output("tasks_results.csv");
     output << "batch_size;task_count;execution_time\n";
 
-    auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(job_nr) };
+    auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(job_to_test) };
     size_t job_size = jobs.size();
     auto images = std::vector<pfc::bitmap>(job_size);
     std::size_t height = static_cast<std::size_t>(g_width / jobs.aspect_ratio());
@@ -185,8 +186,9 @@ static inline void measure_tasks(int job_nr) {
         bmp = make_bitmap(g_width, jobs.aspect_ratio());
     }
 
-    for (unsigned int current_batch_size = 1; current_batch_size <= job_size; current_batch_size = std::min(current_batch_size * 2, static_cast<unsigned int>(job_size + 1))) {
-        for (unsigned int current_task_count = 115; current_task_count <= max_tasks; current_task_count = std::ceil(current_task_count * 1.1)) {
+    // do 1, 4, 8, 16 or something
+    for (unsigned int current_batch_size = 1; current_batch_size <= job_size; current_batch_size = std::min(current_batch_size * 2, job_size + 1)) {
+        for (unsigned int current_task_count = 1; current_task_count <= max_tasks; current_task_count = std::ceil(current_task_count * 1.1)) {
             if (current_task_count < current_batch_size) {
                 continue;
             }
@@ -240,8 +242,8 @@ void checked_main ([[maybe_unused]] std::span <std::string_view const> const arg
    std::cout << std::format ("I'm using a maximum of {} tasks ...\n", max_tasks);
    std::cout << std::format ("I'm using job number {} ...\n", job_to_test);
    
-   measure_threads(job_to_test);
-   measure_tasks(job_to_test);
+   measure_threads();
+   measure_tasks();
 }
 
 int main (int const argc, char const * const * const argv) {
