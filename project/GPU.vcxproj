@@ -82,7 +82,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="gpu_test.cpp" />
+    <ClCompile Include="gpu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gpu_kernel.cuh" />

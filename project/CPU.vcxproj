@@ -82,19 +82,15 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="gpu_test.cpp" />
+    <ClCompile Include="cpu.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="gpu_kernel.cuh" />
     <ClInclude Include="pfc\config.h" />
     <ClInclude Include="pfc\bitmap.h" />
     <ClInclude Include="pfc\chrono.h" />
     <ClInclude Include="pfc\complex.h" />
     <ClInclude Include="pfc\cuda_helper.h" />
     <ClInclude Include="pfc\jobs.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="gpu_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
