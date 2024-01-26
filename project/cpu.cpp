@@ -1,16 +1,3 @@
-//       $Id: 101-fractals.cpp 47900 2023-12-01 09:40:55Z p20068 $
-//      $URL: https://svn01.fh-hagenberg.at/bin/cepheiden/Inhalt/HPC/Threads/fractals/src/101-fractals.cpp $
-// $Revision: 47900 $
-//     $Date: 2023-12-01 10:40:55 +0100 (Fr., 01 Dez 2023) $
-//   $Author: p20068 $
-//   Creator: Peter Kulczycki
-//  Creation: November 20, 2020
-// Copyright: (c) 2021 Peter Kulczycki (peter.kulczycki<AT>fh-hagenberg.at)
-//   License: This document contains proprietary information belonging to
-//            University of Applied Sciences Upper Austria, Campus Hagenberg.
-//            It is distributed under the Boost Software License (see
-//            https://www.boost.org/users/license.html).
-
 #include "pfc/bitmap.h"
 #include "pfc/jobs.h"
 #include "pfc/chrono.h"

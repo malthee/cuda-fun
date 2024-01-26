@@ -56,6 +56,17 @@ template <typename C = default_clock, typename ...A> auto timed_run (std::invoca
    return C::now () - start;
 }
 
+void print_elapsed (pfc::details::std_chrono_duration auto const elapsed) {
+   std::cout
+      << elapsed << '\n'
+      << std::chrono::duration_cast <std::chrono::milliseconds> (elapsed) << '\n'
+      << std::chrono::duration_cast <std::chrono::seconds> (elapsed) << '\n'
+      << pfc::to <std::milli> (elapsed) << " ms\n"
+      << pfc::to <std::kilo> (elapsed) << " ks\n"
+      << pfc::to_seconds (elapsed) << " s\n"
+      << pfc::to_minutes (elapsed) << " m\n";
+}
+
 }   // namespace pfc
 
 #endif   // __CUDACC__

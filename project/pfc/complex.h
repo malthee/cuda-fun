@@ -1,7 +1,7 @@
-//       $Id: complex.h 48073 2024-01-11 08:11:16Z p20068 $
+//       $Id: complex.h 47131 2023-05-08 18:22:44Z p20068 $
 //      $URL: https://svn01.fh-hagenberg.at/bin/cepheiden/pfc/trunk/pfc/inc/pfc/complex.h $
-// $Revision: 48073 $
-//     $Date: 2024-01-11 09:11:16 +0100 (Do., 11 Jän 2024) $
+// $Revision: 47131 $
+//     $Date: 2023-05-08 20:22:44 +0200 (Mo., 08 Mai 2023) $
 //   $Author: p20068 $
 //   Creator: Peter Kulczycki
 //  Creation: November 7, 2020
@@ -14,7 +14,7 @@
 #pragma once
 
 #undef  PFC_COMPLEX_VERSION
-#define PFC_COMPLEX_VERSION "1.10.0"
+#define PFC_COMPLEX_VERSION "1.9.0"
 
 #undef PFC_COMPLEX_HAVE_CUCOMPLEX
 #undef PFC_COMPLEX_HAVE_STDCOMPLEX
@@ -175,26 +175,6 @@ template <typename T = double> class complex final {
       value_t real {};
       value_t imag {};
 };
-
-#if defined PFC_COMPLEX_HAVE_CUCOMPLEX
-
-PFC_GPU_ENABLED constexpr cuDoubleComplex to_cuDoubleComplex (complex <double> const & x) {
-   return x;
-}
-
-PFC_GPU_ENABLED constexpr cuFloatComplex to_cuFloatComplex (complex <float> const & x) {
-   return x;
-}
-
-#endif   // PFC_COMPLEX_HAVE_CUCOMPLEX
-
-#if defined PFC_COMPLEX_HAVE_STDCOMPLEX
-
-template <typename T> PFC_GPU_ENABLED constexpr std::complex <T> to_std_complex (complex <T> const & x) {
-   return x;
-}
-
-#endif   // PFC_COMPLEX_HAVE_STDCOMPLEX
 
 template <typename T> PFC_GPU_ENABLED constexpr auto norm (complex <T> const & x) {
    return x.norm ();
