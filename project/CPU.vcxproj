@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C222C1B2-BD8E-48A1-BF25-D439E0576A0C}</ProjectGuid>
-    <RootNamespace>MPU_Cuda</RootNamespace>
+    <RootNamespace>CPU</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
