@@ -67,6 +67,41 @@ void print_elapsed (pfc::details::std_chrono_duration auto const elapsed) {
       << pfc::to_minutes (elapsed) << " m\n";
 }
 
+// -------------------------------------------------------------------------------------------------
+
+template <typename U = std::ratio <1>, typename S = std::size_t> using memory_size = std::chrono::duration <S, U>;
+
+using kibi = std::ratio <1024>;
+using mebi = std::ratio <1024 * kibi::num>;
+using gibi = std::ratio <1024 * mebi::num>;
+using tebi = std::ratio <1024 * gibi::num>;
+using pebi = std::ratio <1024 * tebi::num>;
+using exbi = std::ratio <1024 * pebi::num>;
+
+using     byte = memory_size <>;
+using kibibyte = memory_size <kibi, float>;
+using mebibyte = memory_size <mebi, float>;
+using gibibyte = memory_size <gibi, float>;
+using tebibyte = memory_size <tebi, float>;
+using pebibyte = memory_size <pebi, float>;
+using exbibyte = memory_size <exbi, float>;
+
+auto operator "" _byte(unsigned long long const v) {
+    return byte{ v };
+}
+
+auto operator "" _kibibyte(long double const v) {
+    return kibibyte{ v };
+}
+
+auto operator "" _mebibyte(long double const v) {
+    return mebibyte{ v };
+}
+
+auto operator "" _gibibyte(long double const v) {
+    return gibibyte{ v };
+}
+
 }   // namespace pfc
 
 #endif   // __CUDACC__
