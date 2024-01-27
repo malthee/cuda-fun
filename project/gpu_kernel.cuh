@@ -5,11 +5,11 @@
 #endif
 
 #include "pfc/complex.h"
-#include "pfc/config.h"
+#include "pfc/shared.h"
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <cstddef>
 
-using namespace config;
+using namespace shared;
 
-cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, pfc::bmp::pixel_t* output, size_t width, size_t height, complex_t ll, complex_t ur);
+cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, pfc::bmp::pixel_t* output, size_t height, complex_t ll, complex_t ur);

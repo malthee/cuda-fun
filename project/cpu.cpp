@@ -267,7 +267,7 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 	std::cout << '\n';
 	std::cout << std::format("I'm using job number {} ...\n", g_job_to_test);
 
-	//measure_threads();
+	measure_threads();
 	measure_tasks();
 }
 

@@ -86,7 +86,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gpu_kernel.cuh" />
-    <ClInclude Include="pfc\config.h" />
+    <ClInclude Include="pfc\shared.h" />
     <ClInclude Include="pfc\bitmap.h" />
     <ClInclude Include="pfc\chrono.h" />
     <ClInclude Include="pfc\complex.h" />

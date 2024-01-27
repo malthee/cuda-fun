@@ -21,11 +21,15 @@
     <ClInclude Include="pfc\cuda_helper.h">
       <Filter>pfc</Filter>
     </ClInclude>
-    <ClInclude Include="pfc\config.h">
+    <ClInclude Include="pfc\shared.h">
       <Filter>pfc</Filter>
     </ClInclude>
+    <ClInclude Include="gpu_kernel.cuh" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gpu.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="gpu_kernel.cu" />
   </ItemGroup>
 </Project>

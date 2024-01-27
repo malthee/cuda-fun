@@ -1,21 +1,8 @@
-//       $Id: 101-fractals.cpp 47900 2023-12-01 09:40:55Z p20068 $
-//      $URL: https://svn01.fh-hagenberg.at/bin/cepheiden/Inhalt/HPC/Threads/fractals/src/101-fractals.cpp $
-// $Revision: 47900 $
-//     $Date: 2023-12-01 10:40:55 +0100 (Fr., 01 Dez 2023) $
-//   $Author: p20068 & s2210454019 $
-//   Creator: Peter Kulczycki & Marcel Salvenmoser
-//  Creation: November 20, 2020
-// Copyright: (c) 2021 Peter Kulczycki (peter.kulczycki<AT>fh-hagenberg.at)
-//   License: This document contains proprietary information belonging to
-//            University of Applied Sciences Upper Austria, Campus Hagenberg.
-//            It is distributed under the Boost Software License (see
-//            https://www.boost.org/users/license.html).
-
 #include "pfc/bitmap.h"
 #include "pfc/jobs.h"
 #include "pfc/chrono.h"
 #include "pfc/cuda_helper.h"
-#include "pfc/config.h"
+#include "pfc/shared.h"
 
 #include <cstdio>
 #include <filesystem>
@@ -28,42 +15,24 @@
 #include <cmath>
 #include "gpu_kernel.cuh"
 
-using namespace config;
+using namespace shared;
+using pixel_t = pfc::bmp::pixel_t;
 
 // -------------------------------------------------------------------------------------------------
 
-template <typename U = std::ratio <1>, typename S = std::size_t> using memory_size = std::chrono::duration <S, U>;
+// These values are tied to a specific job
+constexpr size_t g_job_to_test{ 200 };
+constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) }; 
+auto const g_job_total_size{ g_job_image_size * g_job_to_test };
+constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
+constexpr double g_best_gpu_mibs{ 0 }; 
 
-using kibi = std::ratio <1024>;
-using mebi = std::ratio <1024 * kibi::num>;
-using gibi = std::ratio <1024 * mebi::num>;
-using tebi = std::ratio <1024 * gibi::num>;
-using pebi = std::ratio <1024 * tebi::num>;
-using exbi = std::ratio <1024 * pebi::num>;
-
-using     byte = memory_size <>;
-using kibibyte = memory_size <kibi, float>;
-using mebibyte = memory_size <mebi, float>;
-using gibibyte = memory_size <gibi, float>;
-using tebibyte = memory_size <tebi, float>;
-using pebibyte = memory_size <pebi, float>;
-using exbibyte = memory_size <exbi, float>;
-
-auto operator "" _byte(unsigned long long const v) {
-    return byte{ v };
-}
-
-auto operator "" _kibibyte(long double const v) {
-    return kibibyte{ v };
-}
-
-auto operator "" _mebibyte(long double const v) {
-    return mebibyte{ v };
-}
-
-auto operator "" _gibibyte(long double const v) {
-    return gibibyte{ v };
-}
+std::ostream nout{ nullptr };
+auto& dout{ debug_release(std::cout, nout) };
+auto const g_bmp_path{ "./bitmaps/"s };
+auto const g_jbs_path{ "./jobs/"s };
+constexpr bool g_save_images{ true };
+constexpr size_t g_block_size{ 16 };
 
 // -------------------------------------------------------------------------------------------------
 
@@ -82,48 +51,42 @@ void throw_on_not_existent(std::string const& entity) {
 
 // -------------------------------------------------------------------------------------------------
 
-void process_jobs_with_cuda(bool save_images) {
-    using pixel_t = pfc::bmp::pixel_t;
-    const auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(job_to_test) };
+// TODOS & info
+// ausgehen jedes image im job same size? yes
+// blocksize gridsize optimieren? -< occupancy in nsight
+// vergleichen smart pointers? nah
+// prerechnen von colors? -> on cpu return not pixels but iterations
+// zur�ck zu host kopy in measurement?
+// calc color on cpu
+// loop unrolling
+// streams (async copy and calculate same time)
+// extensions installieren (nsight)
+// compute über der line compute bound /memory bound
+//  pipe util in compute, occupance für kernel config
+// file - source, branching enable compile with source
+// compute -> occupacy, punkt on top soll oben sein memory/compute bound, memory transfers etc.
+// system -> zeigt memory, compute time an
+// bissl screenshots, vergleiche auch wenn schlechter
+void process_jobs_with_cuda(const pfc::jobs<>& jobs, pfc::bitmap& output) {
+    auto image_size = output.size_bytes();
+    auto height = output.height();
+    pixel_t* h_pixels = output.data();
 
-    // ausgehen jedes image im job same size? yes
-    // blocksize gridsize optimieren? -< occupancy in nsight
-    // vergleichen smart pointers? nah
-    // prerechnen von colors? -> on cpu return not pixels but iterations
-    // zur�ck zu host kopy in measurement?
-    // calc color on cpu
-    // loop unrolling
-    // streams (async copy and calculate same time)
-    // extensions installieren (nsight)
-    // compute über der line compute bound /memory bound
-    //  pipe util in compute, occupance für kernel config
-    // file - source, branching enable compile with source
-    
-        // compute -> occupacy, punkt on top soll oben sein memory/compute bound, memory transfers etc.
-    // system -> zeigt memory, compute time an
-    // bissl screenshots, vergleiche auch wenn schlechter
-
-    
+    // Set up kernel parameters depending on image size
+    dim3 blockSize(g_block_size, g_block_size);
+    dim3 gridSize(static_cast<unsigned int>((g_width + blockSize.x - 1) / blockSize.x),
+        static_cast<unsigned int>((height + blockSize.y - 1) / blockSize.y));
 
     for (std::size_t i{}; auto const& [ll, ur, cp, wh] : jobs) {
-        auto image = make_bitmap(g_width, jobs.aspect_ratio());
-        auto image_size = image.size_bytes();
-        auto height = image.height();
-        pixel_t* h_pixels = image.data();
-
 #if !defined USE_SMART_POINTERS_ON_DEVICE
         pixel_t* dp_pixels{ nullptr }; cuda::check(cudaMalloc(&dp_pixels, image_size));
 #else
         auto dp_pixels { cuda::make_unique<pixel_t>(image_size) };
 #endif
 
-        // Set up kernel parameters
-        dim3 blockSize(16, 16);
-        dim3 gridSize((g_width + blockSize.x - 1) / blockSize.x, (height + blockSize.y - 1) / blockSize.y);
-
-        cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_pixels), g_width, height, ll, ur));
-        std::cout << "Finished image " << i << " of job " << job_to_test-1 << std::endl;
+        cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_pixels), height, ll, ur));
     
+        // Copy memory back
         cuda::check(cudaMemcpy(
             h_pixels,
             raw_pointer(dp_pixels),
@@ -135,13 +98,13 @@ void process_jobs_with_cuda(bool save_images) {
         cuda::check(cudaFree(dp_pixels));
 #endif
 
-        if (save_images) {
-            std::string filename = make_filename_bmp(job_to_test, i++);
-            image.to_file(filename);
+        if (g_save_images) {
+            std::string filename = make_filename_bmp(g_job_to_test, i++);
+            output.to_file(filename);
         }
-    }
 
-    cuda::check(cudaDeviceReset());
+        dout << "Finished image " << i << " of job " << g_job_to_test << std::endl;
+    }
 }
 
 void checked_main([[maybe_unused]] std::span <std::string_view const> const args) {
@@ -152,11 +115,11 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
             cudaDeviceProp prop{}; cuda::check(cudaGetDeviceProperties(&prop, d));
 
             auto const cc{ std::format("{}.{}", prop.major, prop.minor) };
-            byte const memory{ prop.totalGlobalMem };
+            pfc::byte const memory{ prop.totalGlobalMem };
             auto const threads{ prop.multiProcessorCount * prop.maxThreadsPerMultiProcessor };
 
             std::cout << std::format(
-                "device #{}: '{}', cc {}, {:.1f} GiB, {} Threads\n", d, prop.name, cc, gibibyte{ memory }.count(), threads
+                "device #{}: '{}', cc {}, {:.1f} GiB, {} Threads\n", d, prop.name, cc, pfc::gibibyte{ memory }.count(), threads
             );
         }
 
@@ -172,10 +135,23 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 
         cuda::check(cudaSetDevice(0));
 
-        process_jobs_with_cuda(true);
-    }
+        const auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(g_job_to_test) };
+        auto image = make_bitmap(g_width, jobs.aspect_ratio());
+        auto duration = pfc::timed_run([&jobs, &image] { 
+            process_jobs_with_cuda(jobs, image);
+            cuda::check(cudaDeviceSynchronize()); // Wait for all kernels to finish
+        });
 
-    cuda::check(cudaDeviceReset());
+        cuda::check(cudaDeviceReset()); // For profiling
+
+        auto in_seconds = pfc::to_seconds(duration);
+        auto mibs = g_job_total_size.count() / in_seconds;
+        std::cout << "Job " << g_job_to_test << " result:\n";
+        std::cout << "Seconds: " << in_seconds << '\n';
+        std::cout << "MiB/s: " << mibs << '\n';
+        std::cout << "Speedup (best CPU): " << g_best_cpu_mibs / mibs << '\n';
+        std::cout << "Speedup (best GPU): " << g_best_gpu_mibs / mibs << '\n';
+    }
 }
 
 int main(int const argc, char const* const* argv) {
