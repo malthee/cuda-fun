@@ -26,7 +26,7 @@ constexpr size_t g_job_to_test{ 200 };
 constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) };
 auto const g_job_total_size{ g_job_image_size * g_job_to_test };
 constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
-constexpr double g_best_gpu_mibs{ 6508.85 };
+constexpr double g_best_gpu_mibs{ 7214.62 };
 
 std::ostream nout{ nullptr };
 auto& dout{ debug_release(std::cout, nout) };
@@ -69,7 +69,7 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 
 	pixel_t* h_pixels = output.data();
 	// Use uint8_t for iterations to save memory and bandwidth
-	uint8_t* h_iterations = new uint8_t[image_size];
+	uint8_t* h_iterations{ nullptr }; cuda::check(cudaMallocHost(&h_iterations, image_size));
 	uint8_t* dp_iterations{ nullptr }; cuda::check(cudaMalloc(&dp_iterations, image_size));
 
 	// Set up kernel parameters depending on image size
@@ -84,15 +84,14 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 		);
 
 		// Copy memory back
-		cuda::check(cudaMemcpy(
+		cuda::check(cudaMemcpyAsync(
 			h_iterations,
 			raw_pointer(dp_iterations),
 			image_size,
 			cudaMemcpyDeviceToHost
 		));
 
-		//// print h_iterations
-		//for (int64_t i{}; i < image_size; ++i) std::cout << static_cast<int>(h_iterations[i]) << " ";
+		cudaDeviceSynchronize();
 
 		// Convert iterations to pixels on CPU
 		#pragma omp parallel for
@@ -107,7 +106,7 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 		dout << "Finished image " << i << " of job " << g_job_to_test << std::endl;
 	}
 
-	delete[] h_iterations;
+	cuda::check(cudaFreeHost(h_iterations));
 	cuda::check(cudaFree(dp_iterations));
 }
 

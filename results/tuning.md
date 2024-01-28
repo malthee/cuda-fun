@@ -63,3 +63,9 @@ Speedup (best GPU): 1.01939
 inline calculations without complex_t performed worse (-5%)
 
 optimizing variables (uint32, 16, etc instead of size_t) hardly improved performance
+
+allocating host memory with cudaMallocHost improved performance by 10%
+Seconds: 3.99189
+MiB/s: 7214.62
+Speedup (best CPU): 58.3419
+Speedup (best GPU): 1.10843
