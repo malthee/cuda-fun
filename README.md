@@ -7,6 +7,13 @@
 ## 1. CPU Comparison
 The CPU implementation was compared with different numbers of threads and tasks. Also a different batch_size (number of images produced at the same time) was used. The results are measured in time (s) and MiBs (Mebibytes per second).
 
+### CPU Tuning
+The following things were optimized:
+* using `complex_t` from `complex.h` instead of `std::complex`
+* better memory access for bitmap (instead of `.at()`, direct memory access)
+* using `square, norm` etc. from `complex.h` 
+* little multiplication/addition optimizations in the mandelbrot Loop
+
 ### Threads
 | batch_size | thread_count | execution_time (s) | MiBs   |
 |------------|--------------|--------------------|--------|

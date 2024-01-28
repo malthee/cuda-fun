@@ -176,6 +176,26 @@ template <typename T = double> class complex final {
       value_t imag {};
 };
 
+#if defined PFC_COMPLEX_HAVE_CUCOMPLEX
+
+PFC_GPU_ENABLED constexpr cuDoubleComplex to_cuDoubleComplex(complex <double> const& x) {
+    return x;
+}
+
+PFC_GPU_ENABLED constexpr cuFloatComplex to_cuFloatComplex(complex <float> const& x) {
+    return x;
+}
+
+#endif   // PFC_COMPLEX_HAVE_CUCOMPLEX
+
+#if defined PFC_COMPLEX_HAVE_STDCOMPLEX
+
+template <typename T> PFC_GPU_ENABLED constexpr std::complex <T> to_std_complex(complex <T> const& x) {
+    return x;
+}
+
+#endif   // PFC_COMPLEX_HAVE_STDCOMPLEX
+
 template <typename T> PFC_GPU_ENABLED constexpr auto norm (complex <T> const & x) {
    return x.norm ();
 }

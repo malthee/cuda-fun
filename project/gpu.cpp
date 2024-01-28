@@ -52,12 +52,9 @@ void throw_on_not_existent(std::string const& entity) {
 // -------------------------------------------------------------------------------------------------
 
 // TODOS & info
-// ausgehen jedes image im job same size? yes
 // blocksize gridsize optimieren? -< occupancy in nsight
-// vergleichen smart pointers? nah
-// prerechnen von colors? -> on cpu return not pixels but iterations
-// zur�ck zu host kopy in measurement?
-// calc color on cpu
+// vergleichen smart pointers? yes actually
+// prerechnen von colors? -> on cpu return not pixels but iterations, try calc color on cpu
 // loop unrolling
 // streams (async copy and calculate same time)
 // extensions installieren (nsight)
