@@ -18,7 +18,6 @@
 #include <omp.h>
 
 using namespace shared;
-using pixel_t = pfc::bmp::pixel_t;
 
 // -------------------------------------------------------------------------------------------------
 
@@ -27,7 +26,7 @@ constexpr size_t g_job_to_test{ 200 };
 constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) };
 auto const g_job_total_size{ g_job_image_size * g_job_to_test };
 constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
-constexpr double g_best_gpu_mibs{ 6385.06 };
+constexpr double g_best_gpu_mibs{ 6508.85 };
 
 std::ostream nout{ nullptr };
 auto& dout{ debug_release(std::cout, nout) };
@@ -55,13 +54,10 @@ void throw_on_not_existent(std::string const& entity) {
 
 // TODOS & info
 // blocksize gridsize optimieren? -< occupancy in nsight
-// vergleichen smart pointers? yes actually
-// prerechnen von colors? -> on cpu return not pixels but iterations, try calc color on cpu
 // loop unrolling
 // streams (async copy and calculate same time)
-// extensions installieren (nsight)
 // compute über der line compute bound /memory bound
-//  pipe util in compute, occupance für kernel config
+// pipe util in compute, occupance für kernel config
 // file - source, branching enable compile with source
 // compute -> occupacy, punkt on top soll oben sein memory/compute bound, memory transfers etc.
 // system -> zeigt memory, compute time an
@@ -69,7 +65,7 @@ void throw_on_not_existent(std::string const& entity) {
 void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) {
 	auto const image_size_bytes = output.size_bytes();
 	auto const image_size = static_cast<int64_t>(output.size());
-	auto const height = output.height();
+	uint16_t const height = static_cast<uint16_t>(output.height());
 
 	pixel_t* h_pixels = output.data();
 	// Use uint8_t for iterations to save memory and bandwidth
@@ -78,11 +74,14 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 
 	// Set up kernel parameters depending on image size
 	dim3 const blockSize(g_block_size, g_block_size);
-	dim3 const gridSize(static_cast<unsigned int>((g_width + blockSize.x - 1) / blockSize.x),
-		static_cast<unsigned int>((height + blockSize.y - 1) / blockSize.y));
+	dim3 const gridSize((g_width + blockSize.x - 1) / blockSize.x,
+		(height + blockSize.y - 1) / blockSize.y);
 
 	for (std::size_t i{}; auto const& [ll, ur, cp, wh] : jobs) {
-		cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_iterations), height, ll, ur));
+		cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_iterations), height, 
+			ll, 
+			ur)
+		);
 
 		// Copy memory back
 		cuda::check(cudaMemcpy(
@@ -91,6 +90,9 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 			image_size,
 			cudaMemcpyDeviceToHost
 		));
+
+		//// print h_iterations
+		//for (int64_t i{}; i < image_size; ++i) std::cout << static_cast<int>(h_iterations[i]) << " ";
 
 		// Convert iterations to pixels on CPU
 		#pragma omp parallel for

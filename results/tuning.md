@@ -28,3 +28,38 @@ Seconds: 4.51053
 MiB/s: 6385.06
 Speedup (best CPU): 51.6336
 Speedup (best GPU): 1.09338
+
+manual loop unrolling 
+```c++
+while (iteration++ < g_colors && z.norm() < g_infinity) {
+    z = pfc::square(z) + c;
+}
+```
+into 
+```c++
+// Unrolling the loop manually
+for (uint8_t i = 0; i < g_colors; i += 4) {
+    if (z.norm() >= g_infinity) break;
+    z = pfc::square(z) + c;
+    iteration++;
+
+    ...
+}
+```
+or pragma omp
+```c++
+#pragma omp unroll
+```
+did not result in a performance gain (stayed around the same). removed first iteration and initialized z with c.
+
+using cuFloatComplex directly did not improve performance
+
+fmaf in real, image square() improved performance a little bit (1-5%)
+Seconds: 4.42474
+MiB/s: 6508.85
+Speedup (best CPU): 52.6347
+Speedup (best GPU): 1.01939
+
+inline calculations without complex_t performed worse (-5%)
+
+optimizing variables (uint32, 16, etc instead of size_t) hardly improved performance

@@ -42,10 +42,11 @@ template <typename D, typename R> [[nodiscard]] constexpr auto&& debug_release([
 
 using real_t = float; 
 using complex_t = pfc::complex<real_t>;
+using pixel_t = pfc::bmp::pixel_t;
 
 __constant__ constexpr  size_t g_colors{ debug_release<size_t,size_t>(64, 128) };
 __constant__ constexpr  real_t g_epsilon{ 0.00001f };
 __constant__ constexpr  real_t g_infinity{ 4 };
-__constant__ constexpr  size_t g_width{ debug_release<size_t, size_t>(1024, 8192) };
+__constant__ constexpr  uint16_t g_width{ debug_release<uint16_t, uint16_t>(1024, 8192) };
 
 };

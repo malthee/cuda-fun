@@ -164,9 +164,9 @@ template <typename T = double> class complex final {
       }
 
       PFC_GPU_ENABLED constexpr complex & square () {
-         auto const r {real * real - imag * imag};
+         auto const r { fmaf(real, real, -imag * imag) };
 
-         imag *= real * 2;
+         imag = fmaf(real, imag, real * imag);
          real  = r;
 
          return *this;
