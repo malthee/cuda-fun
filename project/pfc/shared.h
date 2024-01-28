@@ -14,8 +14,7 @@
 #include <iostream>
 #include <array>
 
-#undef  USE_SMART_POINTERS_ON_DEVICE
-//#define USE_SMART_POINTERS_ON_DEVICE // -> Seems to be slower
+//#define USE_SMART_POINTERS_ON_DEVICE // -> Seems to be slower, disabled
 //#define _debug
 
 using namespace std::string_literals;

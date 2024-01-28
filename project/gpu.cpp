@@ -4,6 +4,7 @@
 #include "pfc/cuda_helper.h"
 #include "pfc/shared.h"
 #include "pfc/colors.h"
+#include "gpu_kernel.cuh"
 
 #include <cstdio>
 #include <filesystem>
@@ -14,7 +15,7 @@
 #include <string_view>
 #include <vector>
 #include <cmath>
-#include "gpu_kernel.cuh"
+#include <omp.h>
 
 using namespace shared;
 using pixel_t = pfc::bmp::pixel_t;
@@ -26,7 +27,7 @@ constexpr size_t g_job_to_test{ 200 };
 constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) };
 auto const g_job_total_size{ g_job_image_size * g_job_to_test };
 constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
-constexpr double g_best_gpu_mibs{ 5839.74 };
+constexpr double g_best_gpu_mibs{ 6385.06 };
 
 std::ostream nout{ nullptr };
 auto& dout{ debug_release(std::cout, nout) };
@@ -66,31 +67,35 @@ void throw_on_not_existent(std::string const& entity) {
 // system -> zeigt memory, compute time an
 // bissl screenshots, vergleiche auch wenn schlechter
 void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) {
-	auto const image_size = output.size_bytes();
+	auto const image_size_bytes = output.size_bytes();
+	auto const image_size = static_cast<int64_t>(output.size());
 	auto const height = output.height();
+
 	pixel_t* h_pixels = output.data();
+	// Use uint8_t for iterations to save memory and bandwidth
+	uint8_t* h_iterations = new uint8_t[image_size];
+	uint8_t* dp_iterations{ nullptr }; cuda::check(cudaMalloc(&dp_iterations, image_size));
 
 	// Set up kernel parameters depending on image size
 	dim3 const blockSize(g_block_size, g_block_size);
 	dim3 const gridSize(static_cast<unsigned int>((g_width + blockSize.x - 1) / blockSize.x),
 		static_cast<unsigned int>((height + blockSize.y - 1) / blockSize.y));
 
-#if !defined USE_SMART_POINTERS_ON_DEVICE
-	pixel_t* dp_pixels{ nullptr }; cuda::check(cudaMalloc(&dp_pixels, image_size));
-#else
-	auto dp_pixels{ cuda::make_unique<pixel_t>(image_size) };
-#endif
-
 	for (std::size_t i{}; auto const& [ll, ur, cp, wh] : jobs) {
-		cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_pixels), height, ll, ur));
+		cuda::check(call_mandelbrot_kernel(gridSize, blockSize, raw_pointer(dp_iterations), height, ll, ur));
 
 		// Copy memory back
 		cuda::check(cudaMemcpy(
-			h_pixels,
-			raw_pointer(dp_pixels),
+			h_iterations,
+			raw_pointer(dp_iterations),
 			image_size,
 			cudaMemcpyDeviceToHost
 		));
+
+		// Convert iterations to pixels on CPU
+		#pragma omp parallel for
+		for (int64_t i{}; i < image_size; ++i)
+			h_pixels[i] = pfc::colors::g_color_map[h_iterations[i]];
 
 		if (g_save_images) {
 			std::string filename = make_filename_bmp(g_job_to_test, i++);
@@ -100,9 +105,8 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, pfc::bitmap& output) 
 		dout << "Finished image " << i << " of job " << g_job_to_test << std::endl;
 	}
 
-#if !defined USE_SMART_POINTERS_ON_DEVICE
-	cuda::check(cudaFree(dp_pixels));
-#endif
+	delete[] h_iterations;
+	cuda::check(cudaFree(dp_iterations));
 }
 
 void checked_main([[maybe_unused]] std::span <std::string_view const> const args) {
@@ -129,7 +133,7 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 			"Driver supports up to runtime version {}.\n"
 			"CUDA API version {}.\n"
 			"\n",
-			api, driver, runtime);
+			api, driver, runtime) << std::flush;
 
 		cuda::check(cudaSetDevice(0));
 
@@ -149,7 +153,7 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 			<< "Seconds: " << in_seconds << '\n'
 			<< "MiB/s: " << mibs << '\n'
 			<< "Speedup (best CPU): " << ((g_best_cpu_mibs > 0) ? mibs / g_best_cpu_mibs : -1) << '\n'
-			<< "Speedup (best GPU): " << ((g_best_gpu_mibs > 0) ? mibs / g_best_gpu_mibs : -1) << std::endl;
+			<< "Speedup (best GPU): " << ((g_best_gpu_mibs > 0) ? mibs / g_best_gpu_mibs : -1) << '\n' << std::flush;
 	}
 
 	cuda::check(cudaDeviceReset()); // For profiling

@@ -12,6 +12,7 @@ using color_t = pfc::bmp::pixel_t;
 using byte_t = pfc::byte_t;
 
 constexpr color_t compute_color(std::size_t iteration, std::size_t max_iters) {
+    // Only set green
     return { .green = static_cast<byte_t>(1.0 * iteration / max_iters * 255) };
 }
 
@@ -24,7 +25,8 @@ constexpr std::array<color_t, N> generate_color_map() {
     return colormap;
 }
 
-constexpr auto g_color_map = generate_color_map<shared::g_colors>();
+// Precomputed color map for all possible iterations (0..g_colors)
+constexpr auto g_color_map = generate_color_map<shared::g_colors + 1>();
 
 }
 }

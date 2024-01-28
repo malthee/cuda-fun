@@ -12,4 +12,4 @@
 
 using namespace shared;
 
-cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, pfc::bmp::pixel_t* output, size_t height, complex_t ll, complex_t ur);
+cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, uint8_t* output, size_t height, complex_t ll, complex_t ur);
