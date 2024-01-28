@@ -11,8 +11,7 @@
 __global__ void mandelbrot_kernel(pfc::bmp::pixel_t* output, size_t height, complex_t ll, complex_t ur) {
     size_t x = blockIdx.x * blockDim.x + threadIdx.x;
     size_t y = blockIdx.y * blockDim.y + threadIdx.y;
-
-    if (x >= g_width || y >= height) return;
+    if (x >= g_width || y >= height) return; // Handle out of bounds threads, is difficult to avoid with non-power-of-two sizes
 
     real_t real = ll.real + (ur.real - ll.real) * x / g_width;
     real_t imag = ll.imag + (ur.imag - ll.imag) * y / height;
