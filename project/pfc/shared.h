@@ -15,6 +15,7 @@
 
 #undef  USE_SMART_POINTERS_ON_DEVICE
 #define USE_SMART_POINTERS_ON_DEVICE
+//#define _debug
 
 using namespace std::string_literals;
 

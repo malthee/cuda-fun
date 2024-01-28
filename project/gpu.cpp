@@ -25,13 +25,13 @@ constexpr size_t g_job_to_test{ 200 };
 constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) }; 
 auto const g_job_total_size{ g_job_image_size * g_job_to_test };
 constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
-constexpr double g_best_gpu_mibs{ 0 }; 
+constexpr double g_best_gpu_mibs{ 3207.94 };
 
 std::ostream nout{ nullptr };
 auto& dout{ debug_release(std::cout, nout) };
 auto const g_bmp_path{ "./bitmaps/"s };
 auto const g_jbs_path{ "./jobs/"s };
-constexpr bool g_save_images{ true };
+constexpr bool g_save_images{ false };
 constexpr size_t g_block_size{ 16 };
 
 // -------------------------------------------------------------------------------------------------
@@ -68,13 +68,13 @@ void throw_on_not_existent(std::string const& entity) {
 // system -> zeigt memory, compute time an
 // bissl screenshots, vergleiche auch wenn schlechter
 void process_jobs_with_cuda(const pfc::jobs<>& jobs, pfc::bitmap& output) {
-    auto image_size = output.size_bytes();
-    auto height = output.height();
+    auto const image_size = output.size_bytes();
+    auto const height = output.height();
     pixel_t* h_pixels = output.data();
 
     // Set up kernel parameters depending on image size
-    dim3 blockSize(g_block_size, g_block_size);
-    dim3 gridSize(static_cast<unsigned int>((g_width + blockSize.x - 1) / blockSize.x),
+    dim3 const blockSize(g_block_size, g_block_size);
+    dim3 const gridSize(static_cast<unsigned int>((g_width + blockSize.x - 1) / blockSize.x),
         static_cast<unsigned int>((height + blockSize.y - 1) / blockSize.y));
 
     for (std::size_t i{}; auto const& [ll, ur, cp, wh] : jobs) {
@@ -135,22 +135,23 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 
         cuda::check(cudaSetDevice(0));
 
-        const auto jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(g_job_to_test) };
+        auto const jobs = pfc::jobs{ g_jbs_path + pfc::jobs<>::make_filename(g_job_to_test) };
         auto image = make_bitmap(g_width, jobs.aspect_ratio());
-        auto duration = pfc::timed_run([&jobs, &image] { 
+
+        auto const duration = pfc::timed_run([&jobs, &image] {
             process_jobs_with_cuda(jobs, image);
             cuda::check(cudaDeviceSynchronize()); // Wait for all kernels to finish
         });
 
         cuda::check(cudaDeviceReset()); // For profiling
 
-        auto in_seconds = pfc::to_seconds(duration);
-        auto mibs = g_job_total_size.count() / in_seconds;
-        std::cout << "Job " << g_job_to_test << " result:\n";
-        std::cout << "Seconds: " << in_seconds << '\n';
-        std::cout << "MiB/s: " << mibs << '\n';
-        std::cout << "Speedup (best CPU): " << g_best_cpu_mibs / mibs << '\n';
-        std::cout << "Speedup (best GPU): " << g_best_gpu_mibs / mibs << '\n';
+        auto const in_seconds = pfc::to_seconds(duration);
+        auto const mibs = g_job_total_size.count() / in_seconds;
+        std::cout << "Job " << g_job_to_test << " result:\n"
+            << "Seconds: " << in_seconds << '\n'
+            << "MiB/s: " << mibs << '\n'
+            << "Speedup (best CPU): " << ((g_best_cpu_mibs > 0) ? mibs / g_best_cpu_mibs : -1) << '\n'
+            << "Speedup (best GPU): " << ((g_best_gpu_mibs > 0) ? mibs / g_best_gpu_mibs : -1) << std::endl;
     }
 }
 
