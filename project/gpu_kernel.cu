@@ -23,9 +23,7 @@ __global__ void mandelbrot_kernel(pfc::bmp::pixel_t* output, size_t height, comp
         z = pfc::square(z) + c;
     }
 
-    pfc::bmp::details::BGR_4_t a;
-    a.green = static_cast <pfc::byte_t> (1.0 * iteration / g_colors * 255);
-    output[y * g_width + x] = a;
+    output[y * g_width + x] = pfc::bmp::pixel_t{0, static_cast <pfc::byte_t> (1.0 * iteration / g_colors * 255), 0};
 }
 
 

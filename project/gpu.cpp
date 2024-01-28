@@ -3,6 +3,7 @@
 #include "pfc/chrono.h"
 #include "pfc/cuda_helper.h"
 #include "pfc/shared.h"
+#include "pfc/colors.h"
 
 #include <cstdio>
 #include <filesystem>
@@ -133,14 +134,14 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 		cuda::check(cudaSetDevice(0));
 
 		auto const jobs = pfc::jobs<real_t>{ g_jbs_path + pfc::jobs<>::make_filename(g_job_to_test) };
+		if (jobs.size() != g_job_to_test)
+			throw std::runtime_error{ "Job size mismatch. File may not be found." };
 		auto image = make_bitmap(g_width, jobs.aspect_ratio());
 
 		auto const duration = pfc::timed_run([&jobs, &image] {
 			process_jobs_with_cuda(jobs, image);
 			cuda::check(cudaDeviceSynchronize()); // Wait for all kernels to finish
 			});
-
-		cuda::check(cudaDeviceReset()); // For profiling
 
 		auto const in_seconds = pfc::to_seconds(duration);
 		auto const mibs = g_job_total_size.count() / in_seconds;
@@ -150,6 +151,8 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 			<< "Speedup (best CPU): " << ((g_best_cpu_mibs > 0) ? mibs / g_best_cpu_mibs : -1) << '\n'
 			<< "Speedup (best GPU): " << ((g_best_gpu_mibs > 0) ? mibs / g_best_gpu_mibs : -1) << std::endl;
 	}
+
+	cuda::check(cudaDeviceReset()); // For profiling
 }
 
 int main(int const argc, char const* const* argv) {

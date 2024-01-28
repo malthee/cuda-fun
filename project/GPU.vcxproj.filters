@@ -25,6 +25,9 @@
       <Filter>pfc</Filter>
     </ClInclude>
     <ClInclude Include="gpu_kernel.cuh" />
+    <ClInclude Include="pfc\colors.h">
+      <Filter>pfc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gpu.cpp" />
