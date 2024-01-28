@@ -10,7 +10,9 @@ namespace cuda {
 
     void check(cudaError_t const e) {
         if (e != cudaSuccess)
-            throw std::runtime_error{ cudaGetErrorName(e) };
+        {
+            throw std::runtime_error(std::format("CUDA error: {} ({})", cudaGetErrorName(e), cudaGetErrorString(e)));
+        }
     }
 
     auto versions() noexcept {
