@@ -36,7 +36,7 @@ auto const g_jbs_path{ "./jobs/"s };
 constexpr bool g_save_images{ false }; // For debugging, check if images still work
 constexpr int g_block_size{ 16 };
 constexpr int g_cuda_streams{ 2 };
-constexpr int g_buffer_count{ 20 };
+constexpr int g_buffer_count{ 8 };
 
 // -------------------------------------------------------------------------------------------------
 
