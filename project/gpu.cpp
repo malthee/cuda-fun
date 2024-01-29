@@ -33,24 +33,15 @@ auto& dout{ debug_release(std::cout, nout) };
 auto const g_bmp_path{ "./bitmaps/"s };
 auto const g_jbs_path{ "./jobs/"s };
 
-constexpr bool g_save_images{ false }; // For debugging, check if images still work
+constexpr bool g_save_images{ true }; // For debugging, check if images still work
 constexpr int g_block_size{ 16 };
 constexpr int g_cuda_streams{ 2 };
-constexpr int g_buffer_count{ 8 };
+constexpr int g_buffer_count{ 16 };
 
 // -------------------------------------------------------------------------------------------------
 
 std::string make_filename_bmp(std::size_t const t, std::size_t const n) {
 	return std::format("{}fractal-test_{}-{:0{}}.bmp", g_bmp_path, t, n, 3);
-}
-
-pfc::bitmap make_bitmap(std::size_t const width, double const aspect_ratio) {
-	return pfc::bitmap{ width, static_cast <std::size_t> (width / aspect_ratio) };
-}
-
-void throw_on_not_existent(std::string const& entity) {
-	if (!std::filesystem::exists(entity))
-		throw std::runtime_error{ "Filesystem entity '" + entity + "' does not exist." };
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -139,12 +130,7 @@ static void process_buffer(cuda_resources& res, int stream, int buffer, int job)
 
 // TODOS & info
 // blocksize gridsize optimieren? -< occupancy in nsight
-// compute über der line compute bound /memory bound
-// pipe util in compute, occupance für kernel config
-// file - source, branching enable compile with source
-// compute -> occupacy, punkt on top soll oben sein memory/compute bound, memory transfers etc.
 // system -> zeigt memory, compute time an
-// bissl screenshots, vergleiche auch wenn schlechter
 void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources& res) {
 	// Set up kernel parameters depending on image size
 	dim3 const blockSize(g_block_size, g_block_size);
