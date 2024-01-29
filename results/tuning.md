@@ -69,3 +69,32 @@ Seconds: 3.99189
 MiB/s: 7214.62
 Speedup (best CPU): 58.3419
 Speedup (best GPU): 1.10843
+
+implemented streaming for a single image makes performance much worse (-60%), implementation failed 
+Seconds: 9.82331
+MiB/s: 2931.8
+Speedup (best CPU): 23.7084
+Speedup (best GPU): 0.40637
+
+streaming per job, improved performance by 5% when using a single stream (first draft, did not work with multiple streams)
+Seconds: 3.77102
+MiB/s: 7637.2
+Speedup (best CPU): 61.7591
+Speedup (best GPU): 1.05857
+
+changed to streaming with buffering and cuda events! performance same as before (buffer 1, streams 1)
+
+## Parameter Sweep for Streams and Buffer Size
+
+![Streams](streams.png)
+
+
+**Results:** it's a tradeoff to use more memory to give the CPU time to do the color lookup, while the GPU writes a lot of images into the buffer. The best result was with 2 streams and 20 buffers. There is a memory limit, so the stream * buffer size cannot be too big.    
+
+**Speedup CPU 111.297, Speedup GPU (baseline with 1 stream  and batch) 1.80211**
+
+
+The biggest problem we removed here was waiting for the CPU bottleneck. So the batch size is more important than the number of streams. Streams still increase the performance but only to a certain point. 
+
+After this adjustment `#pragma unroll` got more important, tried disabling it and it was 50% slower.
+

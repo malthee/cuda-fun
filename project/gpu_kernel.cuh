@@ -12,4 +12,5 @@
 
 using namespace shared;
 
-cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, uint8_t* output, uint16_t height, complex_t ll, complex_t ur);
+cudaError_t call_mandelbrot_kernel(dim3 gridSize, dim3 blockSize, cudaStream_t stream,
+	uint8_t* output, uint16_t height, complex_t ll, complex_t ur);
