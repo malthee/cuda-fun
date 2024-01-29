@@ -33,10 +33,10 @@ auto& dout{ debug_release(std::cout, nout) };
 auto const g_bmp_path{ "./bitmaps/"s };
 auto const g_jbs_path{ "./jobs/"s };
 
-constexpr bool g_save_images{ true }; // For debugging, check if images still work
+constexpr bool g_save_images{ false }; // For debugging, check if images still work
 constexpr int g_block_size{ 16 };
-constexpr int g_cuda_streams{ 2 };
-constexpr int g_buffer_count{ 16 };
+constexpr int g_cuda_streams{ 6 };
+constexpr int g_buffer_count{ 6 };
 
 // -------------------------------------------------------------------------------------------------
 
@@ -128,10 +128,7 @@ static void process_buffer(cuda_resources& res, int stream, int buffer, int job)
 	dout << "Finished image " << job << " of stream " << stream << std::endl;
 }
 
-// TODOS & info
-// blocksize gridsize optimieren? -< occupancy in nsight
-// system -> zeigt memory, compute time an
-void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources& res) {
+static void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources& res) {
 	// Set up kernel parameters depending on image size
 	dim3 const blockSize(g_block_size, g_block_size);
 	dim3 const gridSize((g_width + blockSize.x - 1) / blockSize.x,
@@ -145,6 +142,7 @@ void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources& res) 
 
 		// Ensure the buffer is ready for a new job
 		if (!job_event.is_job_complete) {
+			dout << "Warning. Waiting for buffer " << b << " of stream " << s << " to finish job " << job_event.job << std::endl;
 			cuda::check(cudaEventSynchronize(job_event.event));
 			process_buffer(res, s, b, job_event.job);
 			job_event.is_job_complete = true;

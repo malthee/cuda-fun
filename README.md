@@ -103,3 +103,4 @@ Speedup (best CPU): 25.9414
 Speedup (best GPU): -1 (no previous GPU result)  
 
 ## 3. CUDA Tuning
+[Go to results/tuning.md](results/tuning.md)

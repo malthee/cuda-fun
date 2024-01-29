@@ -1,10 +1,18 @@
-# CUDA Tuning
+# CUDA Tuning 
+* Optimizing job 200
+* Image dimensions: 8192x4607
+* Image size: 144 MiB
+* Colors: 128
 
-## Baseline
+## Starting Point
+### Baseline (CPU)
+- **Seconds:** 232.895
+- **MiB/s:** 123.661
+
+### Baseline (GPU)
 - **Seconds:** 8.97772
 - **MiB/s:** 3207.94
 - **Speedup (Best CPU):** 25.9414
-- **Speedup (Best GPU):** -1 (No previous GPU result)
 
 ## Improvements
 ### Using Raw Pointers Instead of Shared
@@ -31,7 +39,18 @@ Initial slowdown was compensated by adding `pragma omp` for Pixel-Lookup on CPU.
 - **Speedup (Best CPU):** 51.6336
 - **Speedup (Best GPU):** 1.09338
 
+Also optimized coalesced memory access. From ~34 to 18.
+
+![Coalesced](coalesce.png)
+
+![Coalesced](coalesce2.png)
+
 ### Streaming Implementation
+Now the biggest performance bottleneck was serial memory transfer/calculating. The goal is to solve this with implementing CUDA streams, and using buffered results.
+
+![Memory Calculate before](memory.png)
+
+Experiments:
 - More Streams in single image: 60% performance decrease, aborted
   - **Seconds:** 9.82331
   - **MiB/s:** 2931.8
@@ -46,8 +65,11 @@ Initial slowdown was compensated by adding `pragma omp` for Pixel-Lookup on CPU.
  * Streaming with Async-Memory-Transfer, Buffering and CUDA events.
  * Same performance as above, but way better performance with multiple streams (see below [Parameter Sweep for Streams and Buffer Size](#parameter-sweep-for-streams-and-buffer-size)).
 
+After this our timeline looked like this:
+![Memory Calculate after](memory2.png)
+
 ### Other Improvements
-- Using cuFloatComplex directly: No improvement
+- Using `cuFloatComplex` directly: No improvement
 - `fmaf` in `complex_t::square()`: 1-5% performance increase
   - **Seconds:** 4.42474
   - **MiB/s:** 6508.85
@@ -55,7 +77,7 @@ Initial slowdown was compensated by adding `pragma omp` for Pixel-Lookup on CPU.
   - **Speedup (Best GPU):** 1.01939
 - Inline calculations without `complex_t`: 5% performance decrease
 - Optimizing variable types (`uint32, 16, etc.`): Minimal improvement
-- Allocating host memory with `cudaMallocHost`: 10% performance increase
+- Allocating host memory with `cudaMallocHost` (pinned memory): 10% performance increase
   - **Seconds:** 3.99189
   - **MiB/s:** 7214.62
   - **Speedup (Best CPU):** 58.3419
@@ -81,3 +103,30 @@ Initial slowdown was compensated by adding `pragma omp` for Pixel-Lookup on CPU.
 The biggest problem we removed here was waiting for the CPU bottleneck. So the batch size is more important than the number of streams. Streams still increase the performance but only to a certain point. 
 
 
+## Parameter Sweep for Block Size, Occupancy
+block_size,speedup(cpu) TODO format
+
+
+## Final Results
+Initial CPU MiB/s: 123.661  
+Initial GPU MiB/s: 3207.94  
+
+**Best Run**
+
+Speedup (initial GPU)
+
+Memory Throughput  
+![Memory Throughput](memory_throughput.png)
+
+Roofline  
+![Roofline](roofline.png)
+
+Potential  
+![Potential](potential_still.png)
+
+* Analyzed the Non-Fused Instructions, cannot find the reason
+* Global Access was already optimized
+* L2 Store is not worth optimizing with 1,8% Speedup
+
+## Tuning-Tips Checklist
+![Tips](tuningtips.png)
