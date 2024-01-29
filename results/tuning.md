@@ -15,17 +15,23 @@
 - **Speedup (Best CPU):** 25.9414
 
 ## Improvements
-### Using Raw Pointers Instead of Shared
+### Using Raw-Pointers instead of Shared
 - **Seconds:** 6.10271
 - **MiB/s:** 4719.22
 - **Speedup (Best CPU):** 38.1625
 - **Speedup (Best GPU):** 1.47111
 
-### cudaMalloc on Device Only Once, Reusing Memory
+### cudaMalloc on Device only once, reusing Memory
 - **Seconds:** 4.93172
 - **MiB/s:** 5839.74
 - **Speedup (Best CPU):** 47.2238
 - **Speedup (Best GPU):** 1.23744
+
+### Allocating host memory with `cudaMallocHost` (pinned memory): 10% performance increase
+  - **Seconds:** 3.99189
+  - **MiB/s:** 7214.62
+  - **Speedup (Best CPU):** 58.3419
+  - **Speedup (Best GPU):** 1.10843
 
 ### Using uint8_t Instead of pixel_t for Transfer, Calculating Colors on CPU at Compile-Time
 - **Seconds:** 5.8341
@@ -61,9 +67,9 @@ Experiments:
   - **MiB/s:** 7637.2
   - **Speedup (Best CPU):** 61.7591
   - **Speedup (Best GPU):** 1.05857
-/**
  * Streaming with Async-Memory-Transfer, Buffering and CUDA events.
- * Same performance as above, but way better performance with multiple streams (see below [Parameter Sweep for Streams and Buffer Size](#parameter-sweep-for-streams-and-buffer-size)).
+
+Using a single stream resulted in same performance as above, but way better performance with multiple streams (see below [Parameter Sweep for Streams and Buffer Size](#parameter-sweep-for-streams-and-buffer-size)).
 
 After this our timeline looked like this:
 ![Memory Calculate after](memory2.PNG)
@@ -77,11 +83,6 @@ After this our timeline looked like this:
   - **Speedup (Best GPU):** 1.01939
 - Inline calculations without `complex_t`: 5% performance decrease
 - Optimizing variable types (`uint32, 16, etc.`): Minimal improvement
-- Allocating host memory with `cudaMallocHost` (pinned memory): 10% performance increase
-  - **Seconds:** 3.99189
-  - **MiB/s:** 7214.62
-  - **Speedup (Best CPU):** 58.3419
-  - **Speedup (Best GPU):** 1.10843
 
 ### Trials (No Significant Performance Gain)
 - Manual loop unrolling and pragma unroll: No significant performance gain
@@ -121,12 +122,34 @@ Memory Throughput
 Roofline  
 ![Roofline](roofline.PNG)
 
+Occupancy
+![Occupancy](occupancy.PNG)
+
 Potential  
 ![Potential](potential_still.PNG)
 
 * Analyzed the Non-Fused Instructions, cannot find the reason
 * Global Access was already optimized
 * L2 Store is not worth optimizing with 1,8% Speedup
+
+## Summarized
+* occupancy optimization
+* memory allocation optimization
+  * pinned memory
+  * cudaMalloc only once, reuse memory
+  * raw pointers
+* mathematical optimizations
+* using constant memory
+* **streams and buffers for results**
+  * async memory transfer
+  * cuda events
+  * cuda streams
+  * configurable buffer/stream count
+* **precalculating colors, using CPU for lookup**
+  * compile time `constexpr g_colors_map`
+  * lookup done through `pragma omp for` on CPU
+  * only transferring `uint8_t` instead of `pixel_t` (multiple times reduction)
+  
 
 ## Tuning-Tips Checklist
 ![Tips](tuningtips.PNG)
