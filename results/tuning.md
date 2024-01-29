@@ -41,14 +41,14 @@ Initial slowdown was compensated by adding `pragma omp` for Pixel-Lookup on CPU.
 
 Also optimized coalesced memory access. From ~34 to 18.
 
-![Coalesced](coalesce.png)
+![Coalesced](coalesce.PNG)
 
-![Coalesced](coalesce2.png)
+![Coalesced](coalesce2.PNG)
 
 ### Streaming Implementation
 Now the biggest performance bottleneck was serial memory transfer/calculating. The goal is to solve this with implementing CUDA streams, and using buffered results.
 
-![Memory Calculate before](memory.png)
+![Memory Calculate before](memory.PNG)
 
 Experiments:
 - More Streams in single image: 60% performance decrease, aborted
@@ -66,7 +66,7 @@ Experiments:
  * Same performance as above, but way better performance with multiple streams (see below [Parameter Sweep for Streams and Buffer Size](#parameter-sweep-for-streams-and-buffer-size)).
 
 After this our timeline looked like this:
-![Memory Calculate after](memory2.png)
+![Memory Calculate after](memory2.PNG)
 
 ### Other Improvements
 - Using `cuFloatComplex` directly: No improvement
@@ -116,17 +116,17 @@ Initial GPU MiB/s: 3207.94
 Speedup (initial GPU)
 
 Memory Throughput  
-![Memory Throughput](memory_throughput.png)
+![Memory Throughput](memory_throughput.PNG)
 
 Roofline  
-![Roofline](roofline.png)
+![Roofline](roofline.PNG)
 
 Potential  
-![Potential](potential_still.png)
+![Potential](potential_still.PNG)
 
 * Analyzed the Non-Fused Instructions, cannot find the reason
 * Global Access was already optimized
 * L2 Store is not worth optimizing with 1,8% Speedup
 
 ## Tuning-Tips Checklist
-![Tips](tuningtips.png)
+![Tips](tuningtips.PNG)
