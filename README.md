@@ -1,4 +1,6 @@
 # MPV3 - Mandelbrot CPU & CUDA
+![Mandelbrot Fractals](results/fractal-test_200-017.jpg)
+
 ## PC Specs
 * CPU: Intel(R) Core(TM) i7-5820K CPU @ 3.30GHz   3.30 GHz
 * RAM: 16.0 GB DDR4 2133 MHz

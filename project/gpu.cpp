@@ -26,7 +26,7 @@ constexpr size_t g_job_to_test{ 200 };
 constexpr auto g_job_image_size{ debug_release(pfc::mebibyte{1.68}, pfc::mebibyte{144}) };
 auto const g_job_total_size{ g_job_image_size * g_job_to_test };
 constexpr double g_best_cpu_mibs{ 123.661 }; // 123.66 MiB/s, best parallelized CPU implementation for comparison
-constexpr double g_best_gpu_mibs{ 13763.1 };
+constexpr double g_best_gpu_mibs{ 14467.9 };
 
 std::ostream nout{ nullptr };
 auto& dout{ debug_release(std::cout, nout) };
@@ -245,6 +245,9 @@ void checked_main([[maybe_unused]] std::span <std::string_view const> const args
 	}
 
 	cuda::check(cudaDeviceReset()); // For profiling
+	// Avoid closing instantly
+	std::cout << "Press enter to exit." << std::endl;
+	std::cin.get();
 }
 
 int main(int const argc, char const* const* argv) {

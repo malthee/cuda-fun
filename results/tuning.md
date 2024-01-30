@@ -51,7 +51,23 @@ Also optimized coalesced memory access. From ~34 to 18.
 
 ![Coalesced](coalesce2.PNG)
 
-### Streaming Implementation
+### Other Improvements
+- `fmaf` in `complex_t::square()`: 1-5% performance increase
+  - **Seconds:** 4.42474
+  - **MiB/s:** 6508.85
+  - **Speedup (Best CPU):** 52.6347
+  - **Speedup (Best GPU):** 1.01939
+- Inline calculations without `complex_t`: 5% performance decrease
+- Optimizing variable types (`uint32, 16, etc.`): Minimal improvement
+- Avoiding division in kernel (`x / g_width -> x * g_inv_width`): few percent performance increase
+
+### Trials (No Significant Performance Gain or even Loss)
+- Manual loop unrolling and pragma unroll: No significant performance gain at first. But after streaming made a big impact.
+- Removed first iteration and initialized `z` with `c`: Slight improvement
+- Using `cuFloatComplex` (instead `complex_t`) directly: No improvement
+- Inline calculations without `complex_t`: 5% performance decrease
+
+## Streaming Implementation
 Now the biggest performance bottleneck was serial memory transfer/calculating. The goal is to solve this with implementing CUDA streams, and using buffered results.
 
 ![Memory Calculate before](memory.PNG)
@@ -74,24 +90,7 @@ Using a single stream resulted in same performance as above, but way better perf
 After this our timeline looked like this:
 ![Memory Calculate after](memory2.PNG)
 
-### Other Improvements
-- Using `cuFloatComplex` directly: No improvement
-- `fmaf` in `complex_t::square()`: 1-5% performance increase
-  - **Seconds:** 4.42474
-  - **MiB/s:** 6508.85
-  - **Speedup (Best CPU):** 52.6347
-  - **Speedup (Best GPU):** 1.01939
-- Inline calculations without `complex_t`: 5% performance decrease
-- Optimizing variable types (`uint32, 16, etc.`): Minimal improvement
-
-### Trials (No Significant Performance Gain)
-- Manual loop unrolling and pragma unroll: No significant performance gain
-- Removed first iteration and initialized `z` with `c`: Slight improvement
-- Using `cuFloatComplex` (instead `complex_t`) directly: No improvement
-- Inline calculations without `complex_t`: 5% performance decrease
-- Optimizing variable types (`uint32, 16, etc.`): Minimal improvement
-
-## Parameter Sweep for Streams and Buffer Size
+### Parameter Sweep for Streams and Buffer Size
 
 ![Streams](streams.png)
 
@@ -104,17 +103,23 @@ After this our timeline looked like this:
 The biggest problem we removed here was waiting for the CPU bottleneck. So the batch size is more important than the number of streams. Streams still increase the performance but only to a certain point. 
 
 
-## Parameter Sweep for Block Size, Occupancy
-block_size,speedup(cpu) TODO format
-
-
-## Final Results
+# Final Results
 Initial CPU MiB/s: 123.661  
 Initial GPU MiB/s: 3207.94  
 
-**Best Run**
+### Best Run
+Stream count: 6  
+Buffer count: 6   
+Block size: 16  
+Save images: false  
 
-Speedup (initial GPU)
+
+<h2>
+    Seconds: 1.99061<br/>  
+    MiB/s: 14467.9<br/>    
+    Speedup (best CPU): 116.997<br/>  
+    Speedup (initial GPU): 4.51<br/>  
+</h2>
 
 Memory Throughput  
 ![Memory Throughput](memory_throughput.PNG)
@@ -141,8 +146,9 @@ Potential
   * pinned memory
   * cudaMalloc only once, reuse memory
   * raw pointers
-* mathematical optimizations
+* mathematical optimizations (`fmaf`)
 * using constant memory
+* precalculating inverse of `width` and `height` to avoid division
 * **streams and buffers for results**
   * async memory transfer
   * cuda events
@@ -153,6 +159,17 @@ Potential
   * lookup done through `pragma omp for` on CPU
   * only transferring `uint8_t` instead of `pixel_t` (multiple times reduction)
   
+
+### Problems and Challenges:
+* Memory limit, if there was more memory more images could be buffered
+  * Trying to use as much memory as possible and not make it overflow
+* Reproducibility: Profiler (compute) takes a long time, and results vary by few % each time
+* Could not allocate `height` in constant memory, `cudaMemcpyToSymbol` failed. Documentation was not helpful.
+* Had to research `cudaStreams` and `cudaEvents` first did a lot of trial and error
+* Enabling `pragma omp` 
+* Compiler versions did not match of CUDA and normal C++. Had to convert source code, did not know about CUDA compiler flag version.
+* Some divergence could not be prevented, because of non dividable image size with block size (8192x4607) gcd = 1
+
 
 ## Tuning-Tips Checklist
 ![Tips](tuningtips.PNG)
