@@ -55,6 +55,7 @@ struct job_event_info {
 struct cuda_resources {
 	int64_t image_size; // Size of the image (width * height)
 	uint16_t image_height; // Height of the image
+	real_t   inv_height; // Inverse of the image height (to avoid division in the kernel)
 	uint8_t* h_iterations[g_cuda_streams][g_buffer_count]; // Host memory for iterations (pinned), per stream, buffered
 	uint8_t* dp_iterations[g_cuda_streams][g_buffer_count]; // Device memory for iterations, per stream, buffered
 	pixel_t* h_pixels[g_cuda_streams][g_buffer_count]; // Host memory for pixels (pinned), per stream, buffered
@@ -66,12 +67,13 @@ static cuda_resources init_cuda_resources(uint16_t const height) {
 	cuda_resources res{};
 	res.image_height = height;
 	res.image_size = static_cast<uint64_t>(g_width) * height;
+	res.inv_height = static_cast<real_t>(1.0) / height;
 
 	// Allocate for each stream, buffered
-	for (std::size_t s{}; s < g_cuda_streams; ++s) {
+	for (int s{}; s < g_cuda_streams; ++s) {
 		cuda::check(cudaStreamCreate(&res.streams[s]));
 
-		for (std::size_t b{}; b < g_buffer_count; ++b) {
+		for (int b{}; b < g_buffer_count; ++b) {
 			// Allocate device memory
 			cuda::check(cudaMalloc(&res.dp_iterations[s][b], res.image_size));
 
@@ -90,8 +92,8 @@ static cuda_resources init_cuda_resources(uint16_t const height) {
 }
 
 static void free_cuda_resources(cuda_resources& res) {
-	for (std::size_t s{}; s < g_cuda_streams; ++s) {
-		for (std::size_t b{}; b < g_buffer_count; ++b) {
+	for (int s{}; s < g_cuda_streams; ++s) {
+		for (int b{}; b < g_buffer_count; ++b) {
 			// Free device memory
 			cuda::check(cudaFree(res.dp_iterations[s][b]));
 
@@ -142,7 +144,7 @@ static void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources
 
 		// Ensure the buffer is ready for a new job
 		if (!job_event.is_job_complete) {
-			dout << "Warning. Waiting for buffer " << b << " of stream " << s << " to finish job " << job_event.job << std::endl;
+			dout << "Waiting for buffer " << b << " of stream " << s << " to finish job " << job_event.job << std::endl;
 			cuda::check(cudaEventSynchronize(job_event.event));
 			process_buffer(res, s, b, job_event.job);
 			job_event.is_job_complete = true;
@@ -158,6 +160,7 @@ static void process_jobs_with_cuda(const pfc::jobs<real_t>& jobs, cuda_resources
 			res.streams[s],
 			res.dp_iterations[s][b], 
 			res.image_height,
+			res.inv_height,
 			ll,
 			ur
 		));

@@ -122,6 +122,9 @@ Memory Throughput
 Roofline  
 ![Roofline](roofline.PNG)
 
+Throughput
+![Throughput](throughput.PNG)
+
 Occupancy
 ![Occupancy](occupancy.PNG)
 
